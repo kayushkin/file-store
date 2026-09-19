@@ -30,29 +30,12 @@ func newFixture(t *testing.T, environment map[string]string) *fixture {
 	for name, value := range environment {
 		variables[name] = value
 	}
-	definitions, err := SettingDefinitions()
+	service, err := Start(servicesettings.MapEnvironment(variables))
 	if err != nil {
 		t.Fatal(err)
 	}
-	settings, err := servicesettings.New(ServiceName, OwnedEnvironmentPrefixes, definitions, servicesettings.MapEnvironment(variables))
-	if err != nil {
-		t.Fatal(err)
-	}
-	settings.SetValidator(SettingMaximumFileBytes, ValidateMaximumFileBytes)
-	settings.SetValidator(SettingInlineContentTypes, ValidateInlineContentTypes)
-	store, err := Open(dataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { store.Close() })
-	if err := settings.AttachStoredValues(store.StoredSettings(), nil); err != nil {
-		t.Fatal(err)
-	}
-	server, err := NewServer(store, settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return &fixture{handler: server.Handler(), store: store, dataDir: dataDir}
+	t.Cleanup(func() { service.Store.Close() })
+	return &fixture{handler: service.Server.Handler(), store: service.Store, dataDir: dataDir}
 }
 
 func (f *fixture) do(t *testing.T, method, target, contentType string, body []byte, token string) *httptest.ResponseRecorder {
@@ -331,5 +314,26 @@ func TestAServiceListsItsOwnFilesForOneThing(t *testing.T) {
 	}
 	if w := f.do(t, "GET", "/files?limit=0", "", nil, testServiceToken); w.Code != 400 {
 		t.Errorf("limit=0: %d, want 400", w.Code)
+	}
+}
+
+// The environment can seed a setting, and a seeded value never passes through
+// PUT /settings. A start must judge it all the same, or a unit file could put a
+// page type on the inline list that the API would have refused.
+func TestAStartRefusesSettingsTheAPIWouldRefuse(t *testing.T) {
+	for what, variables := range map[string]map[string]string{
+		"a page type on the inline list": {"FILE_STORE_INLINE_CONTENT_TYPES": "image/png,text/html"},
+		"a size limit of zero":           {"FILE_STORE_MAXIMUM_FILE_BYTES": "0"},
+		"a token too short to be one":    {"FILE_STORE_SERVICE_TOKEN": "short"},
+		"a variable nothing declares":    {"FILE_STORE_MAX_BYTES": "5"},
+	} {
+		environment := map[string]string{"FILE_STORE_SERVICE_TOKEN": testServiceToken, "FILE_STORE_DATA_DIR": t.TempDir()}
+		for name, value := range variables {
+			environment[name] = value
+		}
+		if service, err := Start(servicesettings.MapEnvironment(environment)); err == nil {
+			service.Store.Close()
+			t.Errorf("%s: the service started", what)
+		}
 	}
 }

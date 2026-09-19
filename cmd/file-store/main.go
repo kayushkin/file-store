@@ -14,51 +14,20 @@ import (
 )
 
 func main() {
-	definitions, err := filestore.SettingDefinitions()
+	service, err := filestore.Start(servicesettings.ProcessEnvironment())
 	if err != nil {
-		log.Fatalf("settings: %v", err)
+		log.Fatalf("start: %v", err)
 	}
-	settings, err := servicesettings.New(filestore.ServiceName, filestore.OwnedEnvironmentPrefixes, definitions, servicesettings.ProcessEnvironment())
-	if err != nil {
-		log.Fatalf("settings: %v", err)
-	}
-	if err := settings.CheckRequired(); err != nil {
-		log.Fatalf("settings: %v", err)
-	}
-	settings.SetValidator(filestore.SettingMaximumFileBytes, filestore.ValidateMaximumFileBytes)
-	settings.SetValidator(filestore.SettingInlineContentTypes, filestore.ValidateInlineContentTypes)
+	defer service.Store.Close()
 
-	store, err := filestore.Open(settings.String(filestore.SettingDataDirectory))
-	if err != nil {
-		log.Fatalf("open store: %v", err)
-	}
-	defer store.Close()
-	if err := settings.AttachStoredValues(store.StoredSettings(), nil); err != nil {
-		log.Fatalf("settings: %v", err)
-	}
-	// A value seeded from the environment never passed through Set, so the
-	// validators have not seen it yet.
-	for key, validate := range map[string]func(string) error{
-		filestore.SettingMaximumFileBytes:   filestore.ValidateMaximumFileBytes,
-		filestore.SettingInlineContentTypes: filestore.ValidateInlineContentTypes,
-	} {
-		if err := validate(settings.String(key)); err != nil {
-			log.Fatalf("settings: %v", err)
-		}
-	}
-
-	server, err := filestore.NewServer(store, settings)
-	if err != nil {
-		log.Fatalf("server: %v", err)
-	}
-	address := settings.String(filestore.SettingListenAddress)
+	address := service.Settings.String(filestore.SettingListenAddress)
 	httpServer := &http.Server{
 		Addr:              address,
-		Handler:           server.Handler(),
+		Handler:           service.Server.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
-		log.Printf("file-store listening on %s (data=%s); every route but /health needs %s", address, store.DataDir(), filestore.ServiceTokenHeader)
+		log.Printf("file-store listening on %s (data=%s); every route but /health needs %s", address, service.Store.DataDir(), filestore.ServiceTokenHeader)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %v", err)
 		}
