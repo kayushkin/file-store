@@ -13,6 +13,13 @@ service for this thing of its own (`owner_service`, `owner_ref`). Ids are
 `file_000001`. The bytes are on disk under `blobs/`, named by their SHA-256, so
 identical uploads share one blob; the row is what has an owner and a lifetime.
 
+**An id is given out once.** Ids come from a counter, not from the highest row:
+a purge removes the row, and the next upload would otherwise be handed the
+purged file's id — so a reference to the old file, left in any other store,
+would open somebody else's upload. This was found on the first live run, where
+a ticket's attachment came back as the `file_000001` the deploy's own smoke
+probe had just used and purged.
+
 **It does not decide who may read a file.** It knows nothing about tickets,
 mail or chat. A file is readable exactly when the service that owns the thing
 it hangs on says so, and that service is the caller: kanban-store checks the

@@ -337,3 +337,20 @@ func TestAStartRefusesSettingsTheAPIWouldRefuse(t *testing.T) {
 		}
 	}
 }
+
+// A purged file's id must never be given to another file: a reference to the
+// old one, left in any other store, would then open somebody else's upload.
+func TestAPurgedFilesIdIsNeverGivenOutAgain(t *testing.T) {
+	f := newFixture(t, nil)
+	first := f.upload(t, "theirs.txt", "text/plain", []byte("the first person's file"))
+	if w := f.do(t, "DELETE", "/files/"+first.ID+"?hard=true", "", nil, testServiceToken); w.Code != http.StatusNoContent {
+		t.Fatalf("purge: %d", w.Code)
+	}
+	second := f.upload(t, "someone-elses.txt", "text/plain", []byte("a different person's file"))
+	if second.ID == first.ID {
+		t.Fatalf("the purged id %s was given to a new file", first.ID)
+	}
+	if w := f.do(t, "GET", "/files/"+first.ID+"/content", "", nil, testServiceToken); w.Code != http.StatusNotFound {
+		t.Errorf("the purged id reads %d %s, want 404", w.Code, w.Body.String())
+	}
+}

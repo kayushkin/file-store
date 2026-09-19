@@ -35,3 +35,15 @@ CREATE TABLE IF NOT EXISTS service_settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Where the next id comes from. NOT MAX(seq) + 1 over files: a purge removes
+-- the row, and the next upload would then be handed the purged file's id — so a
+-- reference to the old file, left anywhere, would resolve to somebody else's.
+-- An id is given out once. The counter starts from whatever the table holds,
+-- which is right for a database made before this existed.
+CREATE TABLE IF NOT EXISTS file_sequence (
+    only_row INTEGER PRIMARY KEY CHECK (only_row = 1),
+    last_seq INTEGER NOT NULL
+);
+INSERT OR IGNORE INTO file_sequence (only_row, last_seq)
+    VALUES (1, (SELECT COALESCE(MAX(seq), 0) FROM files));

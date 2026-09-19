@@ -144,9 +144,11 @@ func (s *Store) Put(content io.Reader, maximumBytes int64, file NewFile) (*File,
 		Filename: file.Filename, OwnerService: file.OwnerService, OwnerRef: file.OwnerRef,
 		UploadedByPrincipalID: file.UploadedByPrincipalID, CreatedAt: time.Now().Unix(),
 	}
+	// An id is given out once, even to an upload whose insert then fails: a
+	// gap in the numbers is harmless, and a reused id is not. See file_sequence.
 	var seq int64
-	if err := s.db.QueryRow(`SELECT COALESCE(MAX(seq), 0) + 1 FROM files`).Scan(&seq); err != nil {
-		return nil, err
+	if err := s.db.QueryRow(`UPDATE file_sequence SET last_seq = last_seq + 1 WHERE only_row = 1 RETURNING last_seq`).Scan(&seq); err != nil {
+		return nil, fmt.Errorf("take the next file id: %w", err)
 	}
 	stored.ID = formatID(seq)
 	if _, err := s.db.Exec(`INSERT INTO files
