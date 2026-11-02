@@ -61,13 +61,13 @@ func SettingDefinitions() ([]servicesettings.Definition, error) {
 		},
 		{
 			Key: SettingMaximumFileBytes, EnvironmentVariable: "FILE_STORE_MAXIMUM_FILE_BYTES",
-			Kind: msg.ServiceSettingKindBehaviour, ValueType: msg.ServiceSettingValueTypeInteger,
+			Kind: msg.ServiceSettingKindBehavior, ValueType: msg.ServiceSettingValueTypeInteger,
 			Default: strconv.Itoa(25 * 1024 * 1024), Editable: true,
 			Description: "The largest upload accepted, in bytes. A larger one is refused with 413 and nothing is kept. Lowering it does not touch files already stored.",
 		},
 		{
 			Key: SettingInlineContentTypes, EnvironmentVariable: "FILE_STORE_INLINE_CONTENT_TYPES",
-			Kind: msg.ServiceSettingKindBehaviour, ValueType: msg.ServiceSettingValueTypeStringList,
+			Kind: msg.ServiceSettingKindBehavior, ValueType: msg.ServiceSettingValueTypeStringList,
 			Default: "image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain", Editable: true,
 			Description: "Declared content types served for display in a browser when a download asks ?inline=true. Every other file is served as an attachment. A type a browser runs as a page or a script is refused here.",
 		},
