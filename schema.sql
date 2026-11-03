@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE INDEX IF NOT EXISTS idx_files_owner  ON files(owner_service, owner_ref);
 CREATE INDEX IF NOT EXISTS idx_files_sha256 ON files(sha256);
 
--- The behaviour settings this service stores for itself (servicesettings).
+-- The behavior settings this service stores for itself (servicesettings).
 CREATE TABLE IF NOT EXISTS service_settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL

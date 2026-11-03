@@ -321,7 +321,7 @@ func (s *Store) Health() (*Health, error) {
 	return health, nil
 }
 
-// storedSettings keeps the editable behaviour settings in this database.
+// storedSettings keeps the editable behavior settings in this database.
 type storedSettings struct{ db *sql.DB }
 
 // StoredSettings is what servicesettings.AttachStoredValues takes.

@@ -24,7 +24,7 @@ Ids come from the one-row `file_sequence` counter, never from `MAX(seq) + 1`: a 
 
 ## Deleting, and the blob lock
 
-`DELETE` is reversible (the row and the bytes stay; `POST /files/{id}/restore`). `?hard=true` destroys the row, live or deleted, and the blob when no other row names its hash. `Store.blobMutex` makes "is this blob still named?" and the unlink one step against an upload of the same bytes finishing in between; it also serialises id minting. Remove it and `TestUploadsAndPurgesOfTheSameBytesNeverLoseAFile` fails at once. A caller that owns files for a thing must purge them when the thing is purged, **deleted ones included** (`GET /files?owner_service=…&owner_ref=…&include_deleted=true`): kanban-store first went by its own rows and left removed attachments here for good.
+`DELETE` is reversible (the row and the bytes stay; `POST /files/{id}/restore`). `?hard=true` destroys the row, live or deleted, and the blob when no other row names its hash. `Store.blobMutex` makes "is this blob still named?" and the unlink one step against an upload of the same bytes finishing in between; it also serializes id minting. Remove it and `TestUploadsAndPurgesOfTheSameBytesNeverLoseAFile` fails at once. A caller that owns files for a thing must purge them when the thing is purged, **deleted ones included** (`GET /files?owner_service=…&owner_ref=…&include_deleted=true`): kanban-store first went by its own rows and left removed attachments here for good.
 
 # Access and operations
 
